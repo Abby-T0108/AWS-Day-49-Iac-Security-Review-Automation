@@ -21,7 +21,6 @@ What I Did
 
 Tools & Technologies
 * Checkov: Policy-as-code security scanner
-* cfn-lint: CloudFormation linter
 * AWS CloudFormation: Infrastructure-as-Code
 * Python: Tool installation and automation
 * VS Code: Development environment
@@ -59,8 +58,6 @@ pip install checkov cfn-lint
 Run Security Scans
 checkov -f insecure-template.yaml
 checkov -f secure-template.yaml
-cfn-lint insecure-template.yaml
-cfn-lint secure-template.yaml
 
 Key Learnings
 * Infrastructure security must be automated
