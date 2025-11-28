@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SECURE Infrastructure Template - Hardened Version'
+
+Resources:
+  # SECURE S3 Bucket with all protections enabled
+  MySecureS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-secure-bucket-demo-12345
+      # FIXED: Block all public access
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      # FIXED: Enable encryption
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # FIXED: Enable versioning
+      VersioningConfiguration:
+        Status: Enabled
+      # FIXED: Enable logging
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LoggingBucket
+        LogFilePrefix: access-logs/
+
+  # Separate bucket for storing access logs
+  LoggingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-logging-bucket-demo-67890
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # SECURE Security Group - Restricted access only
+  MySecureSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Secure Security Group - Restricted SSH Access'
+      SecurityGroupIngress:
+        # FIXED: SSH only from specific trusted IP
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 203.0.113.25/32  # Replace with actual admin IP
+          Description: 'SSH access from admin workstation only'
+
+  # SECURE IAM Role with Least Privilege
+  MySecureIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SecureRestrictedRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      # FIXED: Custom policy with minimum required permissions
+      Policies:
+        - PolicyName: LimitedS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                Resource: !Sub '${MySecureS3Bucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - 's3:ListBucket'
+                Resource: !GetAtt MySecureS3Bucket.Arn
+
+Outputs:
+  SecureBucketName:
+    Description: 'Name of the secure S3 bucket'
+    Value: !Ref MySecureS3Bucket
+  
+  SecureRoleArn:
+    Description: 'ARN of the secure IAM role'
+    Value: !GetAtt MySecureIAMRole.Arn

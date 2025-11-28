@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Insecure Infrastructure Template for Security Review'
+
+Resources:
+  # Insecure S3 Bucket - Public Access
+  MyInsecureS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-insecure-bucket-demo-12345
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # Insecure Security Group - Open to the World
+  MyInsecureSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Insecure Security Group - Open SSH and RDP'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0  # INSECURE: Open to entire internet
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          
+          CidrIp: 0.0.0.0/0  # INSECURE: Open RDP to internet
+
+  # Overly Permissive IAM Role
+  MyInsecureIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: InsecureAdminRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'  # INSECURE: Full admin access
+
+  # S3 Bucket without Versioning or Logging
+  MyUnmonitoredBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: unmonitored-bucket-demo-67890
